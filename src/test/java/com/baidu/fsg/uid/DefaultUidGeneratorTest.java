@@ -20,11 +20,11 @@ import com.baidu.fsg.uid.impl.DefaultUidGenerator;
 
 /**
  * Test for {@link DefaultUidGenerator}
- * 
+ *
  * @author yutianbao
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:uid/default-uid-spring.xml" })
+@ContextConfiguration(locations = {"classpath:uid/default-uid-spring.xml"})
 public class DefaultUidGeneratorTest {
     private static final int SIZE = 100000; // 10w
     private static final boolean VERBOSE = true;
@@ -50,8 +50,8 @@ public class DefaultUidGeneratorTest {
 
     /**
      * Test for parallel generate
-     * 
-     * @throws InterruptedException
+     *
+     * @throws InterruptedException InterruptedException
      */
     @Test
     public void testParallelGenerate() throws InterruptedException {
@@ -84,7 +84,7 @@ public class DefaultUidGeneratorTest {
      * Worker run
      */
     private void workerRun(Set<Long> uidSet, AtomicInteger control) {
-        for (;;) {
+        for (; ; ) {
             int myPosition = control.updateAndGet(old -> (old == SIZE ? SIZE : old + 1));
             if (myPosition == SIZE) {
                 return;

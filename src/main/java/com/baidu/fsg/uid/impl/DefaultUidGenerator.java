@@ -86,7 +86,7 @@ public class DefaultUidGenerator implements UidGenerator, InitializingBean {
         // initialize bits allocator
         bitsAllocator = new BitsAllocator(timeBits, workerBits, seqBits);
 
-        // initialize worker id
+        // initialize worker id,默认情况下以数据库的主键来当作workId
         workerId = workerIdAssigner.assignWorkerId();
         if (workerId > bitsAllocator.getMaxWorkerId()) {
             throw new RuntimeException("Worker id " + workerId + " exceeds the max " + bitsAllocator.getMaxWorkerId());
@@ -133,9 +133,10 @@ public class DefaultUidGenerator implements UidGenerator, InitializingBean {
      * @throws UidGenerateException in the case: Clock moved backwards; Exceeds the max timestamp
      */
     protected synchronized long nextId() {
+        // 当前秒
         long currentSecond = getCurrentSecond();
 
-        // Clock moved backwards, refuse to generate uid
+        // Clock moved backwards, refuse to generate uid /时钟回调,此时拒绝生成uid(lastSecond:记录上次生成的最后时间)
         if (currentSecond < lastSecond) {
             long refusedSeconds = lastSecond - currentSecond;
             throw new UidGenerateException("Clock moved backwards. Refusing for %d seconds", refusedSeconds);
@@ -143,13 +144,14 @@ public class DefaultUidGenerator implements UidGenerator, InitializingBean {
 
         // At the same second, increase sequence
         if (currentSecond == lastSecond) {
+            // sequence序列号自增
             sequence = (sequence + 1) & bitsAllocator.getMaxSequence();
-            // Exceed the max sequence, we wait the next second to generate uid
+            // Exceed the max sequence, we wait the next second to generate uid /超过最大的sequence,则等待下一秒再生成uid
             if (sequence == 0) {
                 currentSecond = getNextSecond(lastSecond);
             }
 
-        // At the different second, sequence restart from zero
+        // At the different second, sequence restart from zero /不同秒的时候则
         } else {
             sequence = 0L;
         }
@@ -176,6 +178,7 @@ public class DefaultUidGenerator implements UidGenerator, InitializingBean {
      * Get current second
      */
     private long getCurrentSecond() {
+        // ms -> s
         long currentSecond = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
         if (currentSecond - epochSeconds > bitsAllocator.getMaxDeltaSeconds()) {
             throw new UidGenerateException("Timestamp bits is exhausted. Refusing UID generate. Now: " + currentSecond);
@@ -214,5 +217,24 @@ public class DefaultUidGenerator implements UidGenerator, InitializingBean {
             this.epochStr = epochStr;
             this.epochSeconds = TimeUnit.MILLISECONDS.toSeconds(DateUtils.parseByDayPattern(epochStr).getTime());
         }
+    }
+
+    public static void main(String[] args) {
+        long current = System.currentTimeMillis();
+        System.out.println(current);
+        System.out.println(TimeUnit.MILLISECONDS.toSeconds(current));
+
+        // test nextId()
+        long maxSequence = ~(-1L << 13);
+        long sequence = 0L;
+
+        sequence = (sequence + 1) & maxSequence;
+        System.out.println(sequence);
+
+        sequence = (sequence + 1) & maxSequence;
+        System.out.println(sequence);
+
+        sequence = (sequence + 1) & maxSequence;
+        System.out.println(sequence);
     }
 }

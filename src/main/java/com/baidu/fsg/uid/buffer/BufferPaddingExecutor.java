@@ -32,39 +32,53 @@ import com.baidu.fsg.uid.utils.PaddedAtomicLong;
 /**
  * Represents an executor for padding {@link RingBuffer}<br>
  * There are two kinds of executors: one for scheduled padding, the other for padding immediately.
- * 
+ *
  * @author yutianbao
  */
 public class BufferPaddingExecutor {
     private static final Logger LOGGER = LoggerFactory.getLogger(RingBuffer.class);
 
-    /** Constants */
+    /**
+     * Constants
+     */
     private static final String WORKER_NAME = "RingBuffer-Padding-Worker";
     private static final String SCHEDULE_NAME = "RingBuffer-Padding-Schedule";
     private static final long DEFAULT_SCHEDULE_INTERVAL = 5 * 60L; // 5 minutes
-    
-    /** Whether buffer padding is running */
+
+    /**
+     * Whether buffer padding is running
+     */
     private final AtomicBoolean running;
 
-    /** We can borrow UIDs from the future, here store the last second we have consumed */
+    /**
+     * We can borrow UIDs from the future, here store the last second we have consumed
+     */
     private final PaddedAtomicLong lastSecond;
 
-    /** RingBuffer & BufferUidProvider */
+    /**
+     * RingBuffer & BufferUidProvider
+     */
     private final RingBuffer ringBuffer;
     private final BufferedUidProvider uidProvider;
 
-    /** Padding immediately by the thread pool */
+    /**
+     * Padding immediately by the thread pool
+     */
     private final ExecutorService bufferPadExecutors;
-    /** Padding schedule thread */
+    /**
+     * Padding schedule thread
+     */
     private final ScheduledExecutorService bufferPadSchedule;
-    
-    /** Schedule interval Unit as seconds */
+
+    /**
+     * Schedule interval Unit as seconds
+     */
     private long scheduleInterval = DEFAULT_SCHEDULE_INTERVAL;
 
     /**
      * Constructor with {@link RingBuffer} and {@link BufferedUidProvider}, default use schedule
      *
-     * @param ringBuffer {@link RingBuffer}
+     * @param ringBuffer  {@link RingBuffer}
      * @param uidProvider {@link BufferedUidProvider}
      */
     public BufferPaddingExecutor(RingBuffer ringBuffer, BufferedUidProvider uidProvider) {
@@ -74,9 +88,9 @@ public class BufferPaddingExecutor {
     /**
      * Constructor with {@link RingBuffer}, {@link BufferedUidProvider}, and whether use schedule padding
      *
-     * @param ringBuffer {@link RingBuffer}
-     * @param uidProvider {@link BufferedUidProvider}
-     * @param usingSchedule
+     * @param ringBuffer    {@link RingBuffer}
+     * @param uidProvider   {@link BufferedUidProvider}
+     * @param usingSchedule usingSchedule
      */
     public BufferPaddingExecutor(RingBuffer ringBuffer, BufferedUidProvider uidProvider, boolean usingSchedule) {
         this.running = new AtomicBoolean(false);
@@ -101,7 +115,7 @@ public class BufferPaddingExecutor {
      */
     public void start() {
         if (bufferPadSchedule != null) {
-            bufferPadSchedule.scheduleWithFixedDelay(() -> paddingBuffer(), scheduleInterval, scheduleInterval, TimeUnit.SECONDS);
+            bufferPadSchedule.scheduleWithFixedDelay(this::paddingBuffer, scheduleInterval, scheduleInterval, TimeUnit.SECONDS);
         }
     }
 
@@ -121,7 +135,7 @@ public class BufferPaddingExecutor {
     /**
      * Whether is padding
      *
-     * @return
+     * @return boolean
      */
     public boolean isRunning() {
         return running.get();
@@ -137,6 +151,7 @@ public class BufferPaddingExecutor {
     /**
      * Padding buffer fill the slots until to catch the cursor
      */
+    // 1.usingSchedule时会自动异步定时触发(300秒) 2.task获取uid时超过paddingThreshold时会异步触发 3.CachedUidGenerator初始化时会同步触发一次
     public void paddingBuffer() {
         LOGGER.info("Ready to padding buffer lastSecond:{}. {}", lastSecond.get(), ringBuffer);
 
@@ -149,7 +164,8 @@ public class BufferPaddingExecutor {
         // fill the rest slots until to catch the cursor
         boolean isFullRingBuffer = false;
         while (!isFullRingBuffer) {
-            List<Long> uidList = uidProvider.provide(lastSecond.incrementAndGet());
+            List<Long> uidList = uidProvider.provide(lastSecond
+                    .incrementAndGet());
             for (Long uid : uidList) {
                 isFullRingBuffer = !ringBuffer.put(uid);
                 if (isFullRingBuffer) {
@@ -170,5 +186,5 @@ public class BufferPaddingExecutor {
         Assert.isTrue(scheduleInterval > 0, "Schedule interval must positive!");
         this.scheduleInterval = scheduleInterval;
     }
-    
+
 }

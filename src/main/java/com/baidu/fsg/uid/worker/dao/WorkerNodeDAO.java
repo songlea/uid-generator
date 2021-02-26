@@ -29,17 +29,17 @@ public interface WorkerNodeDAO {
 
     /**
      * Get {@link WorkerNodeEntity} by node host
-     * 
-     * @param host
-     * @param port
-     * @return
+     *
+     * @param host host
+     * @param port port
+     * @return WorkerNodeEntity
      */
     WorkerNodeEntity getWorkerNodeByHostPort(@Param("host") String host, @Param("port") String port);
 
     /**
      * Add {@link WorkerNodeEntity}
-     * 
-     * @param workerNodeEntity
+     *
+     * @param workerNodeEntity WorkerNodeEntity
      */
     void addWorkerNode(WorkerNodeEntity workerNodeEntity);
 

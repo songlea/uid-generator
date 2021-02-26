@@ -22,7 +22,7 @@ import org.springframework.util.Assert;
 /**
  * Allocate 64 bits for the UID(long)<br>
  * sign (fixed 1bit) -> deltaSecond -> workerId -> sequence(within the same second)
- * 
+ *
  * @author yutianbao
  */
 public class BitsAllocator {
@@ -79,16 +79,13 @@ public class BitsAllocator {
     /**
      * Allocate bits for UID according to delta seconds & workerId & sequence<br>
      * <b>Note that: </b>The highest bit will always be 0 for sign
-     * 
-     * @param deltaSeconds
-     * @param workerId
-     * @param sequence
-     * @return
      */
     public long allocate(long deltaSeconds, long workerId, long sequence) {
+        // deltaSeconds需要左移workerIdBits + sequenceBits位,类推,再按位或 生成一个64位的long数
         return (deltaSeconds << timestampShift) | (workerId << workerIdShift) | sequence;
+        // return (deltaSeconds << timestampShift) | (workerId % ( (~(-1L << workerIdBits)))) | sequence;
     }
-    
+
     /**
      * Getters
      */
@@ -127,10 +124,19 @@ public class BitsAllocator {
     public int getWorkerIdShift() {
         return workerIdShift;
     }
-    
+
     @Override
     public String toString() {
         return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE);
     }
-    
+
+
+    public static void main(String[] args) {
+        BitsAllocator bitsAllocator = new BitsAllocator(30, 20, 13);
+        // BitsAllocator[signBits=1,timestampBits=30,workerIdBits=20,sequenceBits=13,maxDeltaSeconds=1073741823,maxWorkerId=1048575,maxSequence=8191,timestampShift=33,workerIdShift=13]
+        System.out.println(bitsAllocator);
+        System.out.println(bitsAllocator.allocate(1590229777, 462146, 0));
+        System.out.println(bitsAllocator.allocate(1590229777, 462146, 0));
+
+    }
 }

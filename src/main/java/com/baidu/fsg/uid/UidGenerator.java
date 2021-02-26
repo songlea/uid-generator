@@ -28,7 +28,7 @@ public interface UidGenerator {
      * Get a unique ID
      *
      * @return UID
-     * @throws UidGenerateException
+     * @throws UidGenerateException UidGenerateException
      */
     long getUID() throws UidGenerateException;
 
@@ -36,7 +36,7 @@ public interface UidGenerator {
      * Parse the UID into elements which are used to generate the UID. <br>
      * Such as timestamp & workerId & sequence...
      *
-     * @param uid
+     * @param uid uid
      * @return Parsed info
      */
     String parseUID(long uid);
